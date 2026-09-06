@@ -22,7 +22,6 @@ def insert_passing(passes_made, passes_received):
       collection = db["passes"]
       passes_made_records = passes_made.to_dict(orient="records")
       passes_received_records = passes_received.to_dict(orient="records")
-      collection.drop()
 
       try:
             result_passes_made = collection.insert_many(passes_made_records)
@@ -43,5 +42,12 @@ def insert_passing(passes_made, passes_received):
                    
       except Exception as e:
             print(f"Insert failed: {e}")
-            
+
+def get_top_duos(limit =20):
+      collection = db["lineups"]
+      pipeline = [
+            {"$sort":{"MIN": -1}},
+            {"$limit": limit}
+      ]
+      return list(collection.aggregate(pipeline))
             

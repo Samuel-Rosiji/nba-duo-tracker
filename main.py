@@ -1,0 +1,24 @@
+import time
+
+from db import db
+from db import get_top_duos
+from fetch import fetch_two_man_lineups
+from fetch_passing import fetch_player_passing
+
+
+def main():
+    fetch_two_man_lineups()
+    db["passes"].drop()
+    for doc in get_top_duos(limit=20):
+        group_arr =  doc['GROUP_ID'].split("-")
+        team = doc['TEAM_ID']
+        player_1 =  int(group_arr[1])
+        teammate_2 = int(group_arr[2])
+        fetch_player_passing(player_1, team, teammate_2)
+        time.sleep(1)
+
+
+
+
+if __name__ == "__main__":
+    main()
