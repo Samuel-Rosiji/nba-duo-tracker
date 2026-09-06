@@ -20,11 +20,7 @@ def main():
         if passes_made is not None:
             insert_passing(passes_made, passes_received)
         time.sleep(1)
-
-    
-
-
-
+        
 
 if __name__ == "__main__":
     main()
