@@ -1,4 +1,8 @@
 from pymongo import MongoClient
+import unicodedata
+
+
+
 
 client = MongoClient("mongodb://localhost:27017/")
 db = client["nba_duos"]
@@ -18,10 +22,18 @@ def insert_lineups(df):
     except Exception as e:
           print(f"Insert failed: {e}")
 
+def normalize_name(name):
+    return unicodedata.normalize('NFKD', name).encode('ascii', 'ignore').decode('ascii')
+
 def insert_passing(passes_made, passes_received):
       collection = db["passes"]
       passes_made_records = passes_made.to_dict(orient="records")
       passes_received_records = passes_received.to_dict(orient="records")
+
+      for record in passes_made_records:
+           record['PLAYER_NAME_NORMALIZED'] = normalize_name(record.get('PLAYER_NAME_LAST_FIRST', ''))
+      for record in passes_received_records:
+            record['PLAYER_NAME_NORMALIZED'] = normalize_name(record.get('PLAYER_NAME_LAST_FIRST', ''))
 
       try:
             result_passes_made = collection.insert_many(passes_made_records)

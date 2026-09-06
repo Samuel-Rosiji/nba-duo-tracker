@@ -3,8 +3,19 @@ from db import db
 from pydantic import BaseModel
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+
+
+
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 collection = db["lineups"]
 
@@ -29,7 +40,7 @@ def get_top_duos_by_team(limit: int=10):
     pipeline = [
             # your stages here
             {"$match": {"MIN": {
-                "$gte": 1000 
+                "$gte": 500 
             }} }, 
             {"$group": {
                 "_id": "$TEAM_ABBREVIATION",
@@ -49,6 +60,21 @@ def get_top_duos_by_team(limit: int=10):
     results = list(collection.aggregate(pipeline))
     return JSONResponse(content=results)
 
+@app.get("/passing/search/{name}")
+def search_passing(name: str):
+    collection = db["passes"]
+    result = list(collection.find({
+       "$or": [
+        {"PLAYER_NAME_NORMALIZED": {"$regex": name, "$options": "i"}},
+        {"PLAYER_NAME_LAST_FIRST": {"$regex": name, "$options": "i"}},
+        {"PASS_TO": {"$regex": name, "$options": "i"}},
+        {"PASS_FROM": {"$regex": name, "$options": "i"}}
+        ]
+    }))
+    for doc in result:
+        doc["_id"] = str(doc["_id"])
+    return JSONResponse(content=result)
+
 @app.get("/passing/{player_id}")
 def get_passing(player_id: int):
     collection = db["passes"]
@@ -64,3 +90,5 @@ def get_duos_by_team(team: str):
     for doc in result:
         doc["_id"] = str(doc["_id"])
     return JSONResponse(content=result)
+
+

@@ -9,7 +9,7 @@ def top_duos_by_plus_minus(limit=10):
     pipeline = [
         # your stages here
         {"$match": {"MIN": {
-            "$gte": 1000 
+            "$gte": 500 
         }} }, 
         {"$group": {
             "_id": "$TEAM_ABBREVIATION",

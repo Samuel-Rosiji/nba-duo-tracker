@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NBA Duo Tracker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;900&family=Barlow+Condensed:wght@500;700;900&display=swap');
+
+  :root {
+    --bg:       #0a0e1a;
+    --surface:  #0d1b3e;
+    --surface2: #112050;
+    --accent:   #1652f0;
+    --highlight:#4fc3f7;
+    --text:     #ffffff;
+    --muted:    #8aa3cc;
+    --border:   rgba(70,120,220,0.18);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  header {
+    padding: 28px 40px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-end;
+    gap: 24px;
+  }
+
+  .logo-mark {
+    width: 48px;
+    height: 48px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900;
+    font-size: 22px;
+    letter-spacing: -1px;
+  }
+
+  .header-text h1 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900;
+    font-size: 28px;
+    letter-spacing: 0.5px;
+    line-height: 1;
+  }
+
+  .header-text p {
+    color: var(--muted);
+    font-size: 13px;
+    margin-top: 4px;
+  }
+
+  .season-badge {
+    margin-left: auto;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 13px;
+    color: var(--highlight);
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+
+  /* ── Layout ── */
+  main {
+    padding: 32px 40px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto auto;
+    gap: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .card.full-width {
+    grid-column: 1 / -1;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+
+  .card-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: 0.3px;
+  }
+
+  .card-sub {
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  /* ── Scatter chart ── */
+  .chart-wrap {
+    position: relative;
+    height: 300px;
+  }
+
+  /* ── Duo table ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  thead th {
+    color: var(--muted);
+    font-weight: 500;
+    text-align: left;
+    padding: 0 12px 10px;
+    font-size: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  thead th.num { text-align: right; }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(70,120,220,0.08);
+    transition: background 0.15s;
+  }
+
+  tbody tr:hover { background: var(--surface2); }
+  tbody tr:last-child { border-bottom: none; }
+
+  tbody td {
+    padding: 10px 12px;
+    vertical-align: middle;
+  }
+
+  tbody td.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: var(--highlight);
+    font-weight: 600;
+  }
+
+  .duo-name { font-weight: 600; }
+  .team-tag {
+    display: inline-block;
+    background: var(--surface2);
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-size: 11px;
+    color: var(--muted);
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+
+  /* ── Team bar chart ── */
+  .bar-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .bar-row {
+    display: grid;
+    grid-template-columns: 44px 1fr 70px;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+  }
+
+  .bar-label {
+    font-weight: 700;
+    color: var(--highlight);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 15px;
+  }
+
+  .bar-track {
+    background: var(--surface2);
+    border-radius: 3px;
+    height: 8px;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--highlight));
+    border-radius: 3px;
+    transition: width 0.8s cubic-bezier(.4,0,.2,1);
+  }
+
+  .bar-value {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text);
+  }
+
+  /* ── Passing card ── */
+  .passing-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .pass-box {
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 18px 20px;
+    border: 1px solid var(--border);
+  }
+
+  .pass-box-label {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  .pass-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(70,120,220,0.1);
+    font-size: 13px;
+  }
+
+  .pass-stat:last-child { border-bottom: none; }
+
+  .pass-stat-label { color: var(--muted); }
+
+  .pass-stat-value {
+    font-weight: 700;
+    color: var(--highlight);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .player-header {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    margin-bottom: 4px;
+  }
+
+  /* ── Team search ── */
+  .search-row {
+    display: flex;
+    gap: 10px;
+  }
+
+  input[type="text"] {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input[type="text"]:focus { border-color: var(--accent); }
+  input[type="text"]::placeholder { color: var(--muted); }
+
+  button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-family: 'Barlow', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  button:hover { background: #2563f0; }
+
+  /* ── Loading / error ── */
+  .state-msg {
+    color: var(--muted);
+    font-size: 13px;
+    padding: 20px 0;
+    text-align: center;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 860px) {
+    main { grid-template-columns: 1fr; padding: 20px; }
+    .card.full-width { grid-column: 1; }
+    header { padding: 20px; }
+    .passing-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">D2</div>
+  <div class="header-text">
+    <h1>NBA Duo Tracker</h1>
+    <p>Two-man lineup analysis — who plays better together</p>
+  </div>
+  <div class="season-badge">2025–26 Regular Season</div>
+</header>
+
+<main>
+
+  <!-- Scatter: minutes vs plus/minus -->
+  <div class="card full-width">
+    <div class="card-header">
+      <span class="card-title">Minutes together vs. Plus/Minus</span>
+      <span class="card-sub">Top 100 duos by minutes — hover for details</span>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="scatterChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Top 10 duo table -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Top duos by +/−</span>
+      <span class="card-sub">Min. 500 minutes together</span>
+    </div>
+    <div id="duoTableWrap">
+      <p class="state-msg">Loading…</p>
+    </div>
+  </div>
+
+  <!-- Team bar chart -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Combined +/− by team</span>
+      <span class="card-sub">Sum across all qualifying duos</span>
+    </div>
+    <div id="teamBarsWrap">
+      <p class="state-msg">Loading…</p>
+    </div>
+  </div>
+
+  <!-- Passing connection -->
+  <div class="card full-width">
+    <div class="card-header">
+      <span class="card-title">Passing connection</span>
+      <span class="card-sub">Look up a player by ID to see their passing data</span>
+    </div>
+    <div class="search-row">
+      <input type="text" id="playerInput" placeholder="Player ID — e.g. 203999 for Jokić" />
+      <button onclick="loadPassing()">Look up</button>
+    </div>
+    <div id="passingWrap">
+      <p class="state-msg">Enter a player ID above to see their passing connections.</p>
+    </div>
+  </div>
+
+</main>
+
+<script>
+const API = 'http://127.0.0.1:8000';
+
+// ── Scatter chart ──────────────────────────────────────────
+async function loadScatter() {
+  try {
+    const res = await fetch(`${API}/top_ten_duos?limit=100`);
+    const data = await res.json();
+
+    const points = data.map(d => ({
+      x: parseFloat(d.MIN.toFixed(1)),
+      y: d.PLUS_MINUS,
+      label: d.GROUP_NAME,
+      team: d.TEAM_ABBREVIATION
+    }));
+
+    const ctx = document.getElementById('scatterChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'scatter',
+      data: {
+        datasets: [{
+          data: points,
+          backgroundColor: 'rgba(79,195,247,0.55)',
+          borderColor: '#1652f0',
+          borderWidth: 1,
+          pointRadius: 5,
+          pointHoverRadius: 8,
+          pointHoverBackgroundColor: '#4fc3f7',
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const p = ctx.raw;
+                return [`${p.label} (${p.team})`, `${p.x} min  |  ${p.y > 0 ? '+' : ''}${p.y} +/−`];
+              }
+            },
+            backgroundColor: '#0d1b3e',
+            borderColor: '#1652f0',
+            borderWidth: 1,
+            titleFont: { family: 'Barlow', weight: '600', size: 13 },
+            bodyFont:  { family: 'Barlow', size: 12 },
+            padding: 10,
+          }
+        },
+        scales: {
+          x: {
+            title: { display: true, text: 'Minutes together', color: '#8aa3cc', font: { family: 'Barlow', size: 12 } },
+            grid:  { color: 'rgba(70,120,220,0.1)' },
+            ticks: { color: '#8aa3cc', font: { family: 'Barlow', size: 11 } }
+          },
+          y: {
+            title: { display: true, text: 'Plus / Minus', color: '#8aa3cc', font: { family: 'Barlow', size: 12 } },
+            grid:  { color: 'rgba(70,120,220,0.1)' },
+            ticks: { color: '#8aa3cc', font: { family: 'Barlow', size: 11 } }
+          }
+        }
+      }
+    });
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+// ── Duo table ──────────────────────────────────────────────
+async function loadDuoTable() {
+  const wrap = document.getElementById('duoTableWrap');
+  try {
+    const res = await fetch(`${API}/top_ten_duos?limit=10`);
+    const data = await res.json();
+
+    const rows = data.map(d => `
+      <tr>
+        <td class="duo-name">${d.GROUP_NAME}<span class="team-tag">${d.TEAM_ABBREVIATION}</span></td>
+        <td class="num">${d.MIN.toFixed(0)}</td>
+        <td class="num">${d.PLUS_MINUS > 0 ? '+' : ''}${d.PLUS_MINUS}</td>
+        <td class="num">${(d.W_PCT * 100).toFixed(0)}%</td>
+      </tr>`).join('');
+
+    wrap.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Duo</th>
+            <th class="num">Min</th>
+            <th class="num">+/−</th>
+            <th class="num">W%</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  } catch(e) {
+    wrap.innerHTML = `<p class="state-msg">Could not load — is the API running?</p>`;
+  }
+}
+
+// ── Team bars ──────────────────────────────────────────────
+async function loadTeamBars() {
+  const wrap = document.getElementById('teamBarsWrap');
+  try {
+    const res = await fetch(`${API}/top_duos_by_team?limit=10`);
+    const data = await res.json();
+
+    const max = Math.max(...data.map(d => d.combined_plus_minus));
+
+    const bars = data.map(d => `
+      <div class="bar-row">
+        <span class="bar-label">${d.TEAM_ABBREVIATION}</span>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${(d.combined_plus_minus / max * 100).toFixed(1)}%"></div>
+        </div>
+        <span class="bar-value">+${d.combined_plus_minus}</span>
+      </div>`).join('');
+
+    wrap.innerHTML = `<div class="bar-list">${bars}</div>`;
+  } catch(e) {
+    wrap.innerHTML = `<p class="state-msg">Could not load — is the API running?</p>`;
+  }
+}
+
+// ── Passing ────────────────────────────────────────────────
+async function loadPassing() {
+  const id = document.getElementById('playerInput').value.trim();
+  const wrap = document.getElementById('passingWrap');
+  if (!id) return;
+
+  wrap.innerHTML = `<p class="state-msg">Loading…</p>`;
+
+  try {
+    const res = await fetch(`${API}/passing/search/${id}`);
+    const data = await res.json();
+
+    if (!data.length) {
+      wrap.innerHTML = `<p class="state-msg">No passing data found for player ID ${id}.</p>`;
+      return;
+    }
+
+    const made     = data.find(d => d.PASS_TYPE === 'made');
+    const received = data.find(d => d.PASS_TYPE === 'received');
+    const name     = data[0].PLAYER_NAME_LAST_FIRST;
+    const team     = data[0].TEAM_ABBREVIATION;
+
+    const boxHTML = (title, d, passKey) => d ? `
+      <div class="pass-box">
+        <div class="pass-box-label">${title}</div>
+        <div class="pass-stat"><span class="pass-stat-label">Teammate</span><span class="pass-stat-value">${d[passKey] || '—'}</span></div>
+        <div class="pass-stat"><span class="pass-stat-label">Total passes</span><span class="pass-stat-value">${d.PASS}</span></div>
+        <div class="pass-stat"><span class="pass-stat-label">Assists</span><span class="pass-stat-value">${d.AST}</span></div>
+        <div class="pass-stat"><span class="pass-stat-label">Teammate FG%</span><span class="pass-stat-value">${(d.FG_PCT * 100).toFixed(1)}%</span></div>
+        <div class="pass-stat"><span class="pass-stat-label">Frequency</span><span class="pass-stat-value">${(d.FREQUENCY * 100).toFixed(1)}%</span></div>
+      </div>` : '';
+
+    wrap.innerHTML = `
+      <div>
+        <div class="player-header">${name} <span class="team-tag">${team}</span></div>
+        <div style="color:var(--muted);font-size:13px;margin-bottom:16px">Passing connection with primary duo partner</div>
+        <div class="passing-grid">
+          ${boxHTML('Passes made to partner', made, 'PASS_TO')}
+          ${boxHTML('Passes received from partner', received, 'PASS_FROM')}
+        </div>
+      </div>`;
+  } catch(e) {
+    wrap.innerHTML = `<p class="state-msg">Could not load — is the API running?</p>`;
+  }
+}
+
+// ── Enter key on input ─────────────────────────────────────
+document.getElementById('playerInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') loadPassing();
+});
+
+// ── Init ───────────────────────────────────────────────────
+loadScatter();
+loadDuoTable();
+loadTeamBars();
+</script>
+</body>
+</html>
