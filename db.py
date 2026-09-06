@@ -1,10 +1,13 @@
 from pymongo import MongoClient
 import unicodedata
+import os
+from dotenv import load_dotenv
 
 
+load_dotenv()
 
-
-client = MongoClient("mongodb://localhost:27017/")
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
+client = MongoClient(MONGO_URI)
 db = client["nba_duos"]
 
 def insert_lineups(df):
