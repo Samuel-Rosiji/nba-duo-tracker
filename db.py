@@ -17,3 +17,31 @@ def insert_lineups(df):
             
     except Exception as e:
           print(f"Insert failed: {e}")
+
+def insert_passing(passes_made, passes_received):
+      collection = db["passes"]
+      passes_made_records = passes_made.to_dict(orient="records")
+      passes_received_records = passes_received.to_dict(orient="records")
+      collection.drop()
+
+      try:
+            result_passes_made = collection.insert_many(passes_made_records)
+            if len(result_passes_made.inserted_ids) == len(passes_made_records):
+                  print(f"Successfully inserted {len(result_passes_made.inserted_ids)} documents into passes collection")
+            else:
+                  print(f"Warning exepected {len(passes_made_records)} but got {len(result_passes_made.inserted_ids)} documents into passes collection")
+
+      except Exception as e:
+            print(f"Insert failed: {e}")
+
+      try:
+             result_passes_received = collection.insert_many(passes_received_records)
+             if len(result_passes_received.inserted_ids) == len(passes_received_records):
+                   print(f"Successfully inserted {len(result_passes_received.inserted_ids)} documents into passes collection")
+             else:
+                   print(f"Warning exepected {len(passes_received_records)} but got {len(result_passes_received.inserted_ids)} documents into passes collection")
+                   
+      except Exception as e:
+            print(f"Insert failed: {e}")
+            
+            
